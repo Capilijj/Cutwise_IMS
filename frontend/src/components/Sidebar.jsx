@@ -12,14 +12,35 @@ const fontSans = "'Trebuchet MS', 'Segoe UI', sans-serif";
 
 const sidebarItems = [
   {
-    key: "sales",
-    label: "Sales Management",
+    key: "dashboard",
+    label: "Dashboard",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10 3v18" />
-        <path d="M10 5h5a4 4 0 0 1 0 8h-5" />
-        <line x1="6" y1="8" x2="16" y2="8" />
-        <line x1="6" y1="12" x2="16" y2="12" />
+        <rect x="3" y="11" width="4" height="10" rx="1" />
+        <rect x="10" y="7" width="4" height="14" rx="1" />
+        <rect x="17" y="3" width="4" height="18" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    key: "sales",
+    label: "Sales Entry",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+  },
+  {
+    key: "history",
+    label: "Transaction History",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16v16H4z" />
+        <path d="M8 7h8" />
+        <path d="M8 12h5" />
+        <path d="M13 17h3" />
       </svg>
     ),
   },

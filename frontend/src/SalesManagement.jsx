@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import SalesForm from "./components/SalesForm";
-import TransactionsTable from "./components/TransactionsTable";
+import TransactionHistory from "./components/TransactionsTable";
 
 const C = {
   maroonDark:  "#1C0606",
@@ -52,14 +52,11 @@ function StatCard({ label, value, sub, icon }) {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Top accent line */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: 3,
         background: `linear-gradient(90deg, ${C.maroonDark}, ${C.maroonBtn})`,
         borderRadius: "14px 14px 0 0",
       }} />
-
-      {/* Label + icon row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{
           fontSize: "0.68rem", color: C.textLight, fontFamily: fontSans,
@@ -72,8 +69,6 @@ function StatCard({ label, value, sub, icon }) {
           flexShrink: 0, boxShadow: `0 3px 10px rgba(139,37,37,0.28)`,
         }}>{icon}</div>
       </div>
-
-      {/* Big readable number */}
       <div>
         <div style={{
           fontSize: "clamp(1.55rem, 3vw, 1.9rem)",
@@ -119,7 +114,6 @@ function Toast({ msg, type }) {
   );
 }
 
-// SVG stat card icons
 const StatIcons = {
   revenue: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -139,11 +133,72 @@ const StatIcons = {
   ),
 };
 
+function SalesAnalyticsGraph({ transactions }) {
+  const dayTotals = transactions.reduce((acc, txn) => {
+    const dateKey = txn.timestamp.split(" ")[0];
+    acc[dateKey] = (acc[dateKey] || 0) + txn.total;
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(dayTotals).sort();
+  const points = sortedDates.slice(-7).map((date) => ({
+    label: date.split("-").slice(1).join("/"),
+    value: dayTotals[date],
+  }));
+
+  const maxValue = Math.max(...points.map((item) => item.value), 1);
+
+  return (
+    <div style={{
+      backgroundColor: C.creamDim,
+      borderRadius: 16,
+      padding: "22px 22px 18px",
+      border: `1px solid ${C.creamBorder}`,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: "1rem", color: C.maroonMid, fontFamily: font, fontWeight: "bold" }}>
+            Revenue Trend
+          </h3>
+          <p style={{ margin: "6px 0 0", fontSize: "0.82rem", color: C.textLight, fontFamily: fontSans }}>
+            Last {points.length} days sales movement.
+          </p>
+        </div>
+        <span style={{ fontSize: "0.78rem", color: C.textMid, fontFamily: fontSans }}>
+          ₱ {transactions.reduce((sum, txn) => sum + txn.total, 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+      </div>
+
+      {points.length === 0 ? (
+        <div style={{ padding: "38px 0", textAlign: "center", color: C.textLight, fontFamily: fontSans }}>
+          Add sales to see analytics here.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))`, gap: 12, alignItems: "end", minHeight: 150 }}>
+          {points.map((point) => (
+            <div key={point.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+              <div style={{
+                width: "100%",
+                minHeight: 20,
+                height: `${Math.max(40, (point.value / maxValue) * 140)}px`,
+                borderRadius: 14,
+                background: `linear-gradient(180deg, ${C.maroonBtn}, ${C.maroonMid})`,
+                boxShadow: "0 8px 18px rgba(139,37,37,0.18)",
+                transition: "height 0.25s ease",
+              }} />
+              <span style={{ fontSize: "0.72rem", color: C.textMid, fontFamily: fontSans, textAlign: "center" }}>{point.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SalesManagementApp() {
   const [transactions, setTransactions] = useState([]);
-  const [editingTxn,   setEditingTxn]   = useState(null);
-  const [toast,        setToast]        = useState({ msg: "", type: "success" });
-  const [activeNav,    setActiveNav]    = useState("sales");
+  const [toast, setToast] = useState({ msg: "", type: "success" });
+  const [activeNav, setActiveNav] = useState("sales");
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -151,28 +206,39 @@ export default function SalesManagementApp() {
   };
 
   const handleSave = (data) => {
-    if (editingTxn) {
-      setTransactions(prev => prev.map(t =>
-        t.id === editingTxn.id ? { ...t, ...data, timestamp: now() } : t
-      ));
-      setEditingTxn(null);
-      showToast(`Transaction ${editingTxn.id} updated successfully.`, "success");
-    } else {
-      const newTxn = { id: genId(transactions.length), ...data, timestamp: now() };
-      setTransactions(prev => [newTxn, ...prev]);
-      showToast(`Transaction ${newTxn.id} saved and recorded.`, "success");
-    }
+    const newTxn = { id: genId(transactions.length), ...data, timestamp: now() };
+    setTransactions((prev) => [newTxn, ...prev]);
+    showToast(`Transaction ${newTxn.id} saved and recorded.`, "success");
+  };
+
+  const handleUpdate = (id, updates) => {
+    setTransactions((prev) => prev.map((txn) => (txn.id === id ? { ...txn, ...updates } : txn)));
+    showToast(`Transaction ${id} updated successfully.`, "success");
   };
 
   const handleDelete = (id) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
-    if (editingTxn?.id === id) setEditingTxn(null);
+    setTransactions((prev) => prev.filter((txn) => txn.id !== id));
     showToast(`Transaction ${id} removed.`, "warning");
   };
 
-  const totalRevenue    = transactions.reduce((s, t) => s + t.total, 0);
-  const completedCount  = transactions.filter(t => t.status === "Completed").length;
-  const pendingCount    = transactions.filter(t => t.status === "Pending").length;
+  const totalRevenue = transactions.reduce((sum, txn) => sum + txn.total, 0);
+  const completedCount = transactions.filter((txn) => txn.status === "Completed").length;
+  const pendingCount = transactions.filter((txn) => txn.status === "Pending").length;
+
+  const pageHeaders = {
+    dashboard: {
+      title: "Dashboard Overview",
+      subtitle: "Fast insights for Otto Shoes sales operations.",
+    },
+    sales: {
+      title: "Record New Sale",
+      subtitle: "Create a new sales transaction with ease.",
+    },
+    history: {
+      title: "Transaction History",
+      subtitle: "Review and edit saved sales records.",
+    },
+  };
 
   return (
     <div style={{
@@ -185,21 +251,21 @@ export default function SalesManagementApp() {
       <style>{`
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-8px); }
-          to   { opacity: 1; transform: translateY(0); }
+          to { opacity: 1; transform: translateY(0); }
         }
         * { box-sizing: border-box; }
         input:focus, select:focus {
           border-color: ${C.maroonBtn} !important;
           box-shadow: 0 0 0 3px rgba(139,37,37,0.1);
         }
-        button:hover { opacity: 0.85; }
-        .stat-card:hover {
-          box-shadow: 0 4px 18px rgba(0,0,0,0.11) !important;
-          transform: translateY(-1px);
+        button:hover { opacity: 0.92; }
+        .page-card {
+          background: ${C.creamCard};
+          border-radius: 18px;
+          border: 1px solid ${C.creamBorder};
+          box-shadow: 0 2px 18px rgba(0,0,0,0.08);
+          padding: 28px;
         }
-        .stat-card { transition: box-shadow 0.2s, transform 0.2s; }
-
-        /* Main responsive layout */
         .main-content {
           flex: 1;
           padding: 36px 40px;
@@ -208,37 +274,27 @@ export default function SalesManagementApp() {
         }
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-          margin-bottom: 28px;
+          gap: 18px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          margin-bottom: 24px;
         }
-        .form-table-grid {
-          display: grid;
-          grid-template-columns: 340px 1fr;
-          gap: 26px;
-          align-items: start;
+        .center-panel {
+          max-width: 760px;
+          margin: 0 auto;
+        }
+        .full-panel {
+          width: 100%;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 1100px) {
           .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
-        @media (max-width: 900px) {
-          .form-table-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-        @media (max-width: 768px) {
+        @media (max-width: 760px) {
           .main-content {
-            padding: 80px 18px 28px !important;
+            padding: 76px 18px 24px;
           }
-          .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-          }
-        }
-        @media (max-width: 480px) {
           .stats-grid {
             grid-template-columns: 1fr;
           }
@@ -248,83 +304,98 @@ export default function SalesManagementApp() {
       <Sidebar active={activeNav} onNav={setActiveNav} />
 
       <main className="main-content">
-        {/* Header */}
         <header style={{ marginBottom: 28 }}>
           <div style={{
-            display: "flex", alignItems: "flex-start",
-            justifyContent: "space-between", flexWrap: "wrap", gap: 12,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 14,
           }}>
             <div>
               <h1 style={{
                 margin: 0,
-                fontSize: "clamp(1.3rem, 2.5vw, 1.75rem)",
-                fontFamily: font, color: C.textDark, fontWeight: "bold",
-                letterSpacing: "-0.3px", lineHeight: 1.2,
+                fontSize: "clamp(1.4rem, 2.5vw, 2rem)",
+                fontFamily: font,
+                color: C.textDark,
+                fontWeight: "800",
+                lineHeight: 1.1,
               }}>
-                Sales Transactions Control
+                {pageHeaders[activeNav].title}
               </h1>
               <p style={{
-                margin: "5px 0 0", color: C.textLight,
-                fontSize: "0.8rem", letterSpacing: 0.3, fontFamily: fontSans,
+                margin: "10px 0 0",
+                color: C.textLight,
+                fontSize: "0.92rem",
+                fontFamily: fontSans,
+                maxWidth: 620,
+                lineHeight: 1.6,
               }}>
-                Otto Shoes — CutWise Inventory Management System
+                {pageHeaders[activeNav].subtitle}
               </p>
             </div>
             <div style={{
-              padding: "7px 16px", borderRadius: 20,
+              padding: "10px 18px",
+              borderRadius: 20,
               background: C.creamCard,
               border: `1px solid ${C.creamBorder}`,
-              fontSize: "0.78rem", color: C.textMid,
-              fontFamily: fontSans, whiteSpace: "nowrap",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+              fontSize: "0.79rem",
+              color: C.textMid,
+              fontFamily: fontSans,
+              whiteSpace: "nowrap",
+              boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
             }}>
               {new Date().toLocaleDateString("en-PH", { dateStyle: "long" })}
             </div>
           </div>
         </header>
 
-        {/* Stat Cards */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <StatCard
-              label="Total Revenue"
-              value={`₱ ${totalRevenue.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              sub={`${transactions.length} transaction${transactions.length !== 1 ? "s" : ""}`}
-              icon={StatIcons.revenue}
-            />
-          </div>
-          <div className="stat-card">
-            <StatCard
-              label="Completed Sales"
-              value={completedCount}
-              sub="successfully recorded"
-              icon={StatIcons.check}
-            />
-          </div>
-          <div className="stat-card">
-            <StatCard
-              label="Pending Orders"
-              value={pendingCount}
-              sub="awaiting confirmation"
-              icon={StatIcons.clock}
-            />
-          </div>
-        </div>
-
         <Toast msg={toast.msg} type={toast.type} />
 
-        <div className="form-table-grid">
-          <SalesForm
-            onSave={handleSave}
-            editingTxn={editingTxn}
-            onCancelEdit={() => setEditingTxn(null)}
-          />
-          <TransactionsTable
-            transactions={transactions}
-            onEdit={setEditingTxn}
-            onDelete={handleDelete}
-          />
-        </div>
+        {activeNav === "dashboard" && (
+          <div className="page-card">
+            <div className="stats-grid">
+              <StatCard
+                label="Total Revenue"
+                value={`₱ ${totalRevenue.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                sub={`${transactions.length} transaction${transactions.length !== 1 ? "s" : ""}`}
+                icon={StatIcons.revenue}
+              />
+              <StatCard
+                label="Completed Sales"
+                value={completedCount}
+                sub="successfully recorded"
+                icon={StatIcons.check}
+              />
+              <StatCard
+                label="Pending Orders"
+                value={pendingCount}
+                sub="awaiting confirmation"
+                icon={StatIcons.clock}
+              />
+            </div>
+
+            <div style={{ marginTop: 26 }}>
+              <SalesAnalyticsGraph transactions={transactions} />
+            </div>
+          </div>
+        )}
+
+        {activeNav === "sales" && (
+          <div className="page-card center-panel">
+            <SalesForm onSave={handleSave} />
+          </div>
+        )}
+
+        {activeNav === "history" && (
+          <div className="page-card full-panel">
+            <TransactionHistory
+              transactions={transactions}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          </div>
+        )}
       </main>
     </div>
   );
