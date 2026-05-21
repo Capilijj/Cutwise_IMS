@@ -3,6 +3,8 @@
 const C = {
   maroonDark:  "#1C0606",
   maroonMid:   "#6B1C1C",
+  maroonBtn:   "#8B2525",
+  maroonLight: "#B03A3A",
   creamCard:   "#FFFFFF",
   creamBorder: "#EDE8E1",
   creamDim:    "#F5F2EE",
@@ -121,7 +123,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
     color: sortField === field ? C.maroonMid : C.textLight,
   });
 
-  const sortArrow = (field) => (sortField === field ? (sortDir === "asc" ? "^" : "v") : "");
+  const sortArrow = (field) => (sortField === field ? (sortDir === "asc" ? " ▲" : " ▼") : "");
 
   return (
     <section style={{
@@ -131,7 +133,6 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
       border: `1px solid ${C.creamBorder}`,
       overflow: "hidden",
     }}>
-      <style>{`.tx-save-button{background: linear-gradient(135deg, ${C.maroonMid}, ${C.maroonBtn}) !important;color: #fff !important;border: none !important;box-shadow: 0 10px 20px rgba(139,37,37,0.18) !important;opacity: 1 !important;visibility: visible !important;} .tx-save-button:hover{opacity: 0.95 !important;} .tx-edit-select{appearance: none !important;-webkit-appearance: none !important;-moz-appearance: none !important;background: #fff !important;color: ${C.textDark} !important;}`}</style>
       <div style={{
         padding: "18px 22px",
         display: "flex",
@@ -287,7 +288,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
                     type="text"
                     value={editDraft.customer}
                     onChange={(e) => updateField("customer", e.target.value)}
-                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem" }}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem", outline: "none" }}
                   />
                 </div>
 
@@ -298,8 +299,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
                   <select
                     value={editDraft.itemType}
                     onChange={(e) => updateField("itemType", e.target.value)}
-                    className="tx-edit-select"
-                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem", backgroundColor: "#fff", color: C.textDark }}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem", backgroundColor: "#fff", color: C.textDark, outline: "none" }}
                   >
                     <option>Full Grain Cowhide</option>
                     <option>Top Grain Leather</option>
@@ -318,7 +318,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
                     type="text"
                     value={editDraft.size}
                     onChange={(e) => updateField("size", e.target.value)}
-                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem" }}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem", outline: "none" }}
                   />
                 </div>
 
@@ -333,7 +333,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
                       min="0"
                       value={editDraft.quantity}
                       onChange={(e) => updateField("quantity", e.target.value)}
-                      style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem" }}
+                      style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem", outline: "none" }}
                     />
                   </div>
                   <div>
@@ -346,7 +346,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
                       min="0"
                       value={editDraft.unitPrice}
                       onChange={(e) => updateField("unitPrice", e.target.value)}
-                      style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem" }}
+                      style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem", outline: "none" }}
                     />
                   </div>
                 </div>
@@ -358,7 +358,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
                   <select
                     value={editDraft.status}
                     onChange={(e) => updateField("status", e.target.value)}
-                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem" }}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, fontFamily: fontSans, fontSize: "0.92rem", outline: "none" }}
                   >
                     {STATUS_OPTIONS.map((opt) => <option key={opt}>{opt}</option>)}
                   </select>
@@ -366,7 +366,7 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
                   <button type="button" onClick={closeEditor} style={{
-                    padding: "10px 16px",
+                    padding: "10px 20px",
                     borderRadius: 10,
                     border: `1px solid ${C.creamBorder}`,
                     background: "#fff",
@@ -374,26 +374,28 @@ export default function TransactionHistory({ transactions, onUpdate, onDelete })
                     cursor: "pointer",
                     fontFamily: fontSans,
                     fontWeight: "700",
+                    fontSize: "0.92rem",
                   }}>
                     Cancel
                   </button>
-                  <button type="submit" className="tx-save-button" style={{
-                    padding: "10px 16px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: C.maroonBtn,
-                    color: "#fff",
-                    cursor: "pointer",
-                    fontFamily: fontSans,
-                    fontWeight: "700",
-                    minWidth: 140,
-                    boxShadow: "0 10px 20px rgba(139,37,37,0.18)",
-                    textShadow: "0 0 1px rgba(0,0,0,0.24)",
-                    opacity: 1,
-                    filter: "none",
-                    outline: "none",
-                    visibility: "visible",
-                  }}>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: "10px 24px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: `linear-gradient(135deg, ${C.maroonMid}, ${C.maroonBtn})`,
+                      color: "#fff",
+                      cursor: "pointer",
+                      fontFamily: fontSans,
+                      fontWeight: "700",
+                      fontSize: "0.92rem",
+                      minWidth: 140,
+                      boxShadow: "0 6px 18px rgba(139,37,37,0.28)",
+                      opacity: 1,
+                      visibility: "visible",
+                    }}
+                  >
                     Save Changes
                   </button>
                 </div>
