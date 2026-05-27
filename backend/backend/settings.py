@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from decouple import config  
 
@@ -16,8 +17,17 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'django_filters',
     'sales',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+}
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  
@@ -30,7 +40,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Allow your React dev server to call Django
+# Allow your React dev server (Vite) to call Django
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -55,7 +65,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Supabase PostgreSQL — values come from .env file
+# PostgreSQL Connection Configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -75,9 +85,18 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Manila'
+TIME_ZONE = 'Asia/Manila'  # Perfect for PH timezone tracking!
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ==============================================================================
+# MEDIA FILES SETUP (For Image Storage & Access)
+# ==============================================================================
+# This defines the actual directory on your computer where files will be stored
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# This defines the URL path React will call to view the image (e.g., http://localhost:8000/media/receipts/img.jpg)
+MEDIA_URL = '/media/'
