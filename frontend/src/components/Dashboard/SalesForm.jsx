@@ -73,6 +73,10 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
   const [sizeName, setSizeName]   = useState("");  // stores size display name
   const [quantity, setQuantity]   = useState("");
   const [unitPrice, setUnitPrice] = useState("");
+  const [itemDescription, setItemDescription] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [isPickup, setIsPickup]   = useState(false);
   const [errors, setErrors]       = useState({});
 
   const qty   = parseInt(quantity)    || 0;
@@ -87,6 +91,8 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
     if (!sizeId)           e.size      = "Size type is required.";
     if (!quantity || qty <= 0 || !Number.isInteger(qty)) e.quantity = "Enter a valid whole number quantity.";
     if (!unitPrice || price <= 0) e.unitPrice = "Enter a valid unit price.";
+    if (!deliveryAddress && !isPickup) e.deliveryAddress = "Delivery address is required.";
+    if (!scheduledAt && !isPickup)      e.scheduledAt = "Schedule date/time is required.";
     return e;
   };
 
@@ -100,12 +106,18 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
       size: sizeName,
       quantity: qty,
       unitPrice: price,
+      item_description: itemDescription,
+      delivery_address: deliveryAddress,
+      scheduled_at: scheduledAt,
       total,
+      is_pickup: isPickup,
       status: "Pending",
     });
     setCustomer(""); setItemType("");
     setSizeId(""); setSizeName("");
     setQuantity(""); setUnitPrice("");
+    setItemDescription(""); setDeliveryAddress("");
+    setScheduledAt(""); setIsPickup(false);
     setErrors({});
   };
 
@@ -364,6 +376,117 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
           </div>
         </div>
 
+        {/* Item description */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Item Description</label>
+          <input
+            type="text"
+            value={itemDescription}
+            onChange={(e) => { setItemDescription(e.target.value); setErrors((p) => ({ ...p, itemDescription: "" })); }}
+            placeholder="e.g. Brown cowhide, 5 sqft"
+            style={fieldStyle("itemDescription")}
+          />
+        </div>
+
+        {/* Delivery address */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Delivery Address{!isPickup ? " *" : ""}</label>
+          <input
+            type="text"
+            value={deliveryAddress}
+            onChange={(e) => { setDeliveryAddress(e.target.value); setErrors((p) => ({ ...p, deliveryAddress: "" })); }}
+            placeholder="Street, Barangay, City"
+            style={fieldStyle("deliveryAddress")}
+          />
+          {errors.deliveryAddress && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 6, display: "block" }}>{errors.deliveryAddress}</span>}
+        </div>
+
+        {/* Scheduled date/time */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Scheduled Date & Time{!isPickup ? " *" : ""}</label>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => { setScheduledAt(e.target.value); setErrors((p) => ({ ...p, scheduledAt: "" })); }}
+            style={fieldStyle("scheduledAt")}
+          />
+          {errors.scheduledAt && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 6, display: "block" }}>{errors.scheduledAt}</span>}
+        </div>
+
+        {/* Fulfillment options */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Fulfillment Type</label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {[
+              {
+                key: "pickup",
+                label: "Customer Pick-up",
+                hint: "Customer collects the order.",
+                activeBg: "#FFF8EC",
+                activeBorder: "#D4A017",
+                activeColor: "#7A5200",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" />
+                    <path d="M1 10h22" />
+                    <path d="M12 10v11" />
+                    <path d="M7 21h10" />
+                  </svg>
+                ),
+              },
+              {
+                key: "delivery",
+                label: "Delivery",
+                hint: "Order will be sent out.",
+                activeBg: "#FFF5F5",
+                activeBorder: "#B03A3A",
+                activeColor: "#8B2525",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 7h18" />
+                    <path d="M5 7v10h14V7" />
+                    <path d="M8 11h8" />
+                    <path d="M8 14h5" />
+                  </svg>
+                ),
+              },
+            ].map((option) => {
+              const selected = option.key === "pickup" ? isPickup : !isPickup;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setIsPickup(option.key === "pickup")}
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 10,
+                    textAlign: "left", borderRadius: 12,
+                    padding: "12px 12px", cursor: "pointer",
+                    border: `1.5px solid ${selected ? option.activeBorder : C.creamBorder}`,
+                    background: selected ? option.activeBg : "#fff",
+                    boxShadow: selected ? "0 6px 16px rgba(139,37,37,0.12)" : "0 2px 8px rgba(0,0,0,0.03)",
+                    color: selected ? option.activeColor : C.textDark,
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <span style={{
+                    width: 30, height: 30, borderRadius: 10,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    background: selected ? option.activeBorder : C.creamDim,
+                    color: selected ? "#fff" : C.textMid,
+                    flexShrink: 0,
+                  }}>
+                    {option.icon}
+                  </span>
+                  <span>
+                    <span style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", fontFamily: fontSans, lineHeight: 1.2 }}>{option.label}</span>
+                    <span style={{ display: "block", fontSize: "0.68rem", color: selected ? option.activeColor : C.textLight, fontFamily: fontSans, marginTop: 3, lineHeight: 1.35 }}>{option.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
       </div>
 
       {/* ════════════════ RIGHT — order summary ════════════════ */}
@@ -433,6 +556,39 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
           <div style={{ fontSize: "0.85rem", color: sizeName ? "#fff" : "rgba(255,255,255,0.3)", fontFamily: fontSans }}>
             {sizeName || "—"}
           </div>
+        </div>
+
+        {/* Fulfillment preview */}
+        <div style={{
+          background: "rgba(255,255,255,0.07)",
+          borderRadius: 10, padding: "10px 16px", marginBottom: 14,
+          border: "1px solid rgba(255,255,255,0.15)",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke={isPickup ? "#C9A84C" : "#F2B8B8"}
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          >
+            {isPickup ? (
+              <>
+                <path d="M21 10V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" />
+                <path d="M1 10h22" />
+                <path d="M12 10v11" />
+                <path d="M7 21h10" />
+              </>
+            ) : (
+              <>
+                <path d="M3 7h18" />
+                <path d="M5 7v10h14V7" />
+                <path d="M8 11h8" />
+                <path d="M8 14h5" />
+              </>
+            )}
+          </svg>
+          <span style={{ fontSize: "0.72rem", color: isPickup ? "#C9A84C" : "#F2B8B8", fontFamily: fontSans, fontWeight: "600" }}>
+            {isPickup ? "Customer Pick-up" : "Delivery"}
+          </span>
         </div>
 
         {/* Breakdown */}

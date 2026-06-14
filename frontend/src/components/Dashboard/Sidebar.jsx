@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
-import ottoLogo from "../assets/otto-logo.png";
+import ottoLogo from "../../assets/otto-logo.svg";
+import { useAuth } from "../../contexts/AuthContext";
 
 const C = {
   sidebarBg:    "#1C0606",
@@ -64,17 +65,20 @@ function HamburgerIcon({ open }) {
 }
 
 export default function Sidebar({ active, onNav }) {
+  const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false
   );
 
-  // Hardcoded for now — replace with API fetch when auth is ready (sub 2)
-  const user = {
-    name: "Capili Justine",
-    initials: "JA",
-    role: "Cashier",
-  };
+  const currentUser = user || { username: "User", email: "", role: "sales_clerk" };
+  const initials = (currentUser.full_name || currentUser.username || "U")
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const roleLabel = (currentUser.role || "sales_clerk").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   useEffect(() => {
     const handler = () => {
@@ -265,10 +269,11 @@ export default function Sidebar({ active, onNav }) {
         {/* User footer */}
         <div style={{
           padding: "14px 20px 22px",
-          display: "flex", alignItems: "center", gap: 10,
           borderTop: `1px solid ${C.sidebarBorder}`,
           marginTop: 6,
+          display: "grid", gap: 10,
         }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: "50%",
             background: C.maroonBtn,
@@ -276,16 +281,42 @@ export default function Sidebar({ active, onNav }) {
             color: "#fff", fontSize: "0.72rem", fontWeight: "500", flexShrink: 0,
             letterSpacing: 0.5,
           }}>
-            {user.initials}
+            {initials}
           </div>
-          <div style={{ overflow: "hidden" }}>
-            <div style={{
-              fontSize: "0.82rem", fontWeight: "500",
-              color: C.textWhite, whiteSpace: "nowrap",
-              overflow: "hidden", textOverflow: "ellipsis",
-            }}>{user.name}</div>
-            <div style={{ fontSize: "0.68rem", color: C.textMuted }}>{user.role}</div>
+            <div style={{ overflow: "hidden" }}>
+              <div style={{
+                fontSize: "0.82rem", fontWeight: "500",
+                color: C.textWhite, whiteSpace: "nowrap",
+                overflow: "hidden", textOverflow: "ellipsis",
+              }}>{currentUser.full_name || currentUser.username || "User"}</div>
+              <div style={{ fontSize: "0.68rem", color: C.textMuted }}>{roleLabel}</div>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await signOut();
+              window.location.reload();
+            }}
+            aria-label="Log out"
+            style={{
+              border: `1px solid ${C.sidebarBorder}`,
+              background: "transparent",
+              color: C.textWhite,
+              borderRadius: 10,
+              padding: "10px 10px",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </aside>
     </>

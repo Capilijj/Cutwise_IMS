@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "npx concurrently \"..\\backend\\venv\\Scripts\\python.exe ..\\backend\\manage.py runserver\" \"vite\""
+    "start": "npx concurrently \"..\\venv\\Scripts\\python.exe ..\\backend\\manage.py runserver \" \"vite\""
   },
   "dependencies": {
     "react": "^19.2.6",

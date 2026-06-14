@@ -1,9 +1,10 @@
 ﻿import { useState, useEffect, useCallback } from "react";
-import Sidebar from "./Sidebar";
-import SalesForm from "./SalesForm";
-import SettingsPage from "./SettingsPage";
-import TransactionHistory from "./TransactionHistory";
-import { leatherAPI, sizeAPI, transactionAPI } from "../../services/api";
+import Sidebar from "./Dashboard/Sidebar";
+import SalesForm from "./Dashboard/SalesForm";
+import SettingsPage from "./Dashboard/SettingsPage";
+import TransactionHistory from "./Dashboard/TransactionHistory";
+import { useAuth } from "../contexts/AuthContext";
+import { leatherAPI, sizeAPI, transactionAPI } from "../services/api";
 
 const C = {
   maroonDark: "#1C0606",
@@ -30,6 +31,7 @@ const font = "'Georgia', 'Times New Roman', serif";
 const fontSans = "'Trebuchet MS', 'Segoe UI', sans-serif";
 
 export default function SalesManagementApp() {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [leatherTypes, setLeatherTypes] = useState([]);
   const [sizeTypes, setSizeTypes] = useState([]);
@@ -202,6 +204,11 @@ export default function SalesManagementApp() {
   };
 
   const sizeLabels = sizeTypes;
+  const role = (user?.role || "sales_clerk").toLowerCase();
+  const canCreate = role === "admin" || role === "sales_clerk";
+  const canEdit = role === "admin" || role === "supervisor";
+  const canDelete = role === "admin";
+  const canManageSettings = role === "admin" || role === "supervisor";
 
   const pageHeaders = {
     sales: {
@@ -259,6 +266,9 @@ export default function SalesManagementApp() {
                 transactions={transactions}
                 leatherTypes={leatherTypes}
                 sizeTypes={sizeLabels}
+                canCreate={canCreate}
+                canEdit={canEdit}
+                canDelete={canDelete}
                 onNewTransaction={() => setShowForm(true)}
                 onEdit={(txn) => setEditingTxn(txn)}
                 onDelete={(txn) => setDeletingTxn(txn)}
@@ -287,6 +297,7 @@ export default function SalesManagementApp() {
             <SettingsPage
               leatherTypes={leatherTypes}
               sizeTypes={sizeLabels}
+              canManageSettings={canManageSettings}
               onAddLeatherType={handleAddLeatherType}
               onUpdateLeatherType={handleUpdateLeatherType}
               onDeleteLeatherType={handleDeleteLeatherType}

@@ -20,6 +20,7 @@ const fontSans = "'Trebuchet MS', 'Segoe UI', sans-serif";
 export default function SettingsPage({
   leatherTypes,
   sizeTypes,
+  canManageSettings = true,
   onAddLeatherType,
   onUpdateLeatherType,
   onDeleteLeatherType,
@@ -157,7 +158,7 @@ export default function SettingsPage({
         <div style={{ marginBottom: 28 }}>
           <div style={{ fontSize: "1.1rem", fontWeight: 800, color: C.maroonDark, fontFamily: fontSans, marginBottom: 6 }}>Leather & Size Settings</div>
           <div style={{ color: C.textMid, lineHeight: 1.7, fontSize: "0.92rem" }}>
-            Create, update, and delete leather or size types. 
+            Create, update, and delete leather or size types. {canManageSettings ? "You can manage these settings." : "You can view these settings, but changes are restricted to authorized roles."}
           </div>
         </div>
 
@@ -195,7 +196,8 @@ export default function SettingsPage({
                   value={name}
                   onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: "" })); }}
                   placeholder="Ex: Pebbled Leather"
-                  style={{ ...inputStyle, borderColor: errors.name ? C.error : C.creamBorder, background: errors.name ? "#FFF1F0" : "#fff" }}
+                  disabled={!canManageSettings}
+                  style={{ ...inputStyle, borderColor: errors.name ? C.error : C.creamBorder, background: errors.name ? "#FFF1F0" : "#fff", opacity: canManageSettings ? 1 : 0.75 }}
                 />
                 {errors.name && <span style={{ color: C.error, fontSize: "0.82rem" }}>{errors.name}</span>}
               </label>
@@ -206,7 +208,8 @@ export default function SettingsPage({
                   value={tag}
                   onChange={(e) => { setTag(e.target.value); setErrors((p) => ({ ...p, tag: "" })); }}
                   placeholder="Ex: Premium"
-                  style={{ ...inputStyle, borderColor: errors.tag ? C.error : C.creamBorder, background: errors.tag ? "#FFF1F0" : "#fff" }}
+                  disabled={!canManageSettings}
+                  style={{ ...inputStyle, borderColor: errors.tag ? C.error : C.creamBorder, background: errors.tag ? "#FFF1F0" : "#fff", opacity: canManageSettings ? 1 : 0.75 }}
                 />
                 {errors.tag && <span style={{ color: C.error, fontSize: "0.82rem" }}>{errors.tag}</span>}
               </label>
@@ -217,7 +220,8 @@ export default function SettingsPage({
                   type="file"
                   accept="image/*"
                   onChange={handlePhotoChange}
-                  style={{ ...inputStyle, padding: "10px 14px" }}
+                  disabled={!canManageSettings}
+                  style={{ ...inputStyle, padding: "10px 14px", opacity: canManageSettings ? 1 : 0.75 }}
                 />
               </label>
 
@@ -230,6 +234,7 @@ export default function SettingsPage({
               <button
                 type="button"
                 onClick={handleSaveLeather}
+                disabled={!canManageSettings}
                 style={{
                   width: "100%",
                   padding: "14px 16px",
@@ -239,7 +244,8 @@ export default function SettingsPage({
                   background: `linear-gradient(135deg, ${C.maroonBtn}, ${C.maroonDark})`,
                   fontFamily: fontSans,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: canManageSettings ? "pointer" : "not-allowed",
+                  opacity: canManageSettings ? 1 : 0.65,
                 }}
               >
                 {leatherButtonLabel}
@@ -280,13 +286,15 @@ export default function SettingsPage({
                   value={sizeValue}
                   onChange={(e) => { setSizeValue(e.target.value); setErrors((p) => ({ ...p, size: "" })); }}
                   placeholder="Ex: Batch A"
-                  style={{ ...inputStyle, borderColor: errors.size ? C.error : C.creamBorder, background: errors.size ? "#FFF1F0" : "#fff" }}
+                  disabled={!canManageSettings}
+                  style={{ ...inputStyle, borderColor: errors.size ? C.error : C.creamBorder, background: errors.size ? "#FFF1F0" : "#fff", opacity: canManageSettings ? 1 : 0.75 }}
                 />
                 {errors.size && <span style={{ color: C.error, fontSize: "0.82rem" }}>{errors.size}</span>}
               </label>
               <button
                 type="button"
                 onClick={handleSaveSize}
+                disabled={!canManageSettings}
                 style={{
                   width: "100%",
                   padding: "14px 16px",
@@ -296,7 +304,8 @@ export default function SettingsPage({
                   background: `linear-gradient(135deg, ${C.maroonBtn}, ${C.maroonDark})`,
                   fontFamily: fontSans,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: canManageSettings ? "pointer" : "not-allowed",
+                  opacity: canManageSettings ? 1 : 0.65,
                 }}
               >
                 {sizeButtonLabel}
@@ -337,14 +346,16 @@ export default function SettingsPage({
                       <button
                         type="button"
                         onClick={() => setEditLeatherIndex(index)}
-                        style={{ padding: "10px 14px", borderRadius: 12, border: `1px solid ${C.creamBorder}`, background: "#fff", color: C.maroonDark, cursor: "pointer", fontFamily: fontSans, fontSize: "0.82rem" }}
+                        disabled={!canManageSettings}
+                        style={{ padding: "10px 14px", borderRadius: 12, border: `1px solid ${C.creamBorder}`, background: "#fff", color: C.maroonDark, cursor: canManageSettings ? "pointer" : "not-allowed", fontFamily: fontSans, fontSize: "0.82rem", opacity: canManageSettings ? 1 : 0.65 }}
                       >
                         Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => onDeleteLeatherType(index)}
-                        style={{ padding: "10px 14px", borderRadius: 12, border: "none", background: C.danger, color: "#fff", cursor: "pointer", fontFamily: fontSans, fontSize: "0.82rem" }}
+                        disabled={!canManageSettings}
+                        style={{ padding: "10px 14px", borderRadius: 12, border: "none", background: C.danger, color: "#fff", cursor: canManageSettings ? "pointer" : "not-allowed", fontFamily: fontSans, fontSize: "0.82rem", opacity: canManageSettings ? 1 : 0.65 }}
                       >
                         Delete
                       </button>
@@ -376,14 +387,16 @@ export default function SettingsPage({
                       <button
                         type="button"
                         onClick={() => setEditSizeIndex(index)}
-                        style={{ padding: "10px 14px", borderRadius: 12, border: `1px solid ${C.creamBorder}`, background: "#fff", color: C.maroonDark, cursor: "pointer", fontFamily: fontSans, fontSize: "0.82rem" }}
+                        disabled={!canManageSettings}
+                        style={{ padding: "10px 14px", borderRadius: 12, border: `1px solid ${C.creamBorder}`, background: "#fff", color: C.maroonDark, cursor: canManageSettings ? "pointer" : "not-allowed", fontFamily: fontSans, fontSize: "0.82rem", opacity: canManageSettings ? 1 : 0.65 }}
                       >
                         Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => onDeleteSizeType(index)}
-                        style={{ padding: "10px 14px", borderRadius: 12, border: "none", background: C.danger, color: "#fff", cursor: "pointer", fontFamily: fontSans, fontSize: "0.82rem" }}
+                        disabled={!canManageSettings}
+                        style={{ padding: "10px 14px", borderRadius: 12, border: "none", background: C.danger, color: "#fff", cursor: canManageSettings ? "pointer" : "not-allowed", fontFamily: fontSans, fontSize: "0.82rem", opacity: canManageSettings ? 1 : 0.65 }}
                       >
                         Delete
                       </button>

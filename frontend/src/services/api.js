@@ -6,10 +6,22 @@
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
+function getCsrfToken() {
+  return document.cookie
+    .split("; ")
+    .find((item) => item.startsWith("csrftoken="))
+    ?.split("=")[1] || "";
+}
+
 async function request(method, path, body) {
+  const csrfToken = getCsrfToken();
   const opts = {
     method,
-    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+    },
   };
   if (body !== undefined) opts.body = JSON.stringify(body);
 
