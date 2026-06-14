@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from "react";
-import ottoLogo from "../../assets/otto-logo.svg";
+import ottoLogo from "../../assets/Logo.png";
 import { useAuth } from "../../contexts/AuthContext";
 
 const C = {

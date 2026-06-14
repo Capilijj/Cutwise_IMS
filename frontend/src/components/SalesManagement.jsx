@@ -60,7 +60,8 @@ export default function SalesManagementApp() {
         ]);
         if (!mounted) return;
         setLeatherTypes(lt.map((l) => ({ id: l.id, value: l.name, tag: l.tag ?? "", photo: l.photo_url ?? "" })));
-        setSizeTypes(st.map((s) => ({ id: s.id, value: s.name })));
+        setSizeTypes(st.map((s) => ({ id: s.id, value: s.name, unit: s.unit || "sqr" })));
+
         setTransactions(txns);
       } catch (err) {
         if (!mounted) return;

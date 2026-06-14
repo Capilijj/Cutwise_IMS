@@ -77,6 +77,8 @@ function EditDrawer({ txn, leatherTypes, sizeTypes, onSave, onClose, saving }) {
   const [qty, setQty] = useState(String(txn.quantity_kg));
   const [price, setPrice] = useState(String(txn.unit_price));
   const [status, setStatus] = useState(txn.status);
+  const [itemDescription, setItemDescription] = useState(txn.item_description || "");
+  const [deliveryAddress, setDeliveryAddress] = useState(txn.delivery_address || "");
   const [isPickup, setIsPickup] = useState(txn.is_pickup ?? false);
   const [errors, setErrors] = useState({});
 
@@ -89,6 +91,10 @@ function EditDrawer({ txn, leatherTypes, sizeTypes, onSave, onClose, saving }) {
     if (!sizeId) e.size = "Required.";
     if (!qty || parseInt(qty) <= 0) e.qty = "Must be > 0.";
     if (!price || parseFloat(price) <= 0) e.price = "Must be > 0.";
+    if (!isPickup) {
+      if (!deliveryAddress.trim()) e.deliveryAddress = "Delivery address is required.";
+      if (!itemDescription.trim()) e.itemDescription = "Description is required for delivery.";
+    }
     return e;
   };
 
@@ -105,6 +111,8 @@ function EditDrawer({ txn, leatherTypes, sizeTypes, onSave, onClose, saving }) {
       size_type: parseInt(sizeId),
       quantity_kg: parseInt(qty),
       unit_price: parseFloat(price),
+      item_description: itemDescription,
+      delivery_address: deliveryAddress,
       is_pickup: isPickup,
       status,
     });
@@ -201,9 +209,35 @@ function EditDrawer({ txn, leatherTypes, sizeTypes, onSave, onClose, saving }) {
               })}
             </div>
           </div>
+          {!isPickup && (
+            <>
+              <div>
+                <label style={labelSt}>Item Description</label>
+                <textarea
+                  value={itemDescription}
+                  onChange={(e) => { setItemDescription(e.target.value); setErrors((p) => ({ ...p, itemDescription: "" })); }}
+                  rows={3}
+                  style={{ ...fieldStyle("itemDescription"), resize: "vertical", minHeight: 84 }}
+                  placeholder="Describe the delivery items or note special instructions"
+                />
+                {errors.itemDescription && <span style={{ color: C.error, fontSize: "0.68rem", fontFamily: fontSans }}>{errors.itemDescription}</span>}
+              </div>
+              <div>
+                <label style={labelSt}>Delivery Address</label>
+                <input
+                  type="text"
+                  value={deliveryAddress}
+                  onChange={(e) => { setDeliveryAddress(e.target.value); setErrors((p) => ({ ...p, deliveryAddress: "" })); }}
+                  style={fieldStyle("deliveryAddress")}
+                  placeholder="Delivery address for this order"
+                />
+                {errors.deliveryAddress && <span style={{ color: C.error, fontSize: "0.68rem", fontFamily: fontSans }}>{errors.deliveryAddress}</span>}
+              </div>
+            </>
+          )}
           <div>
             <label style={labelSt}>Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} style={fieldStyle("status")}>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} style={fieldStyle("status")}> 
               {['Pending', 'Completed', 'Cancelled'].map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
@@ -317,7 +351,7 @@ function SalesLanding({ transactions, leatherTypes, sizeTypes, onNewTransaction,
             <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: fontSans, fontSize: "0.82rem" }}>
               <thead>
                 <tr style={{ background: C.creamDim }}>
-                  {['TXN ID', 'Customer', 'Leather Type', 'Size', 'Qty (kg)', 'Unit Price', 'Total', 'Scheduled', 'Delivery_Types', 'Status', 'Actions'].map((h) => (
+                  {['TXN ID', 'Created', 'Customer', 'Leather Type', 'Size', 'Qty (kg)', 'Unit Price', 'Total', 'Scheduled', 'Delivery_Types', 'Status', 'Actions'].map((h) => (
                     <th key={h} style={{ padding: "10px 14px", textAlign: h === "Actions" ? "center" : "left", color: C.textLight, fontWeight: "700", fontSize: "0.63rem", textTransform: "uppercase", letterSpacing: 1.2, borderBottom: `1px solid ${C.creamBorder}`, whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -326,6 +360,7 @@ function SalesLanding({ transactions, leatherTypes, sizeTypes, onNewTransaction,
                 {latest.map((txn, i) => (
                   <tr key={txn.id} style={{ borderBottom: i < latest.length - 1 ? `1px solid ${C.creamBorder}` : "none", transition: "background 0.12s" }} onMouseEnter={(e) => { e.currentTarget.style.background = C.creamDim; }} onMouseLeave={(e) => { e.currentTarget.style.background = ""; }}>
                     <td style={{ padding: "12px 14px", color: C.maroonBtn, fontWeight: "700", whiteSpace: "nowrap" }}>{txn.id}</td>
+                    <td style={{ padding: "12px 14px", color: C.textMid, whiteSpace: "nowrap" }}>{txn.created_at ? new Date(txn.created_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td>
                     <td style={{ padding: "12px 14px", color: C.textDark }}>{txn.customer_name}</td>
                     <td style={{ padding: "12px 14px", color: C.textMid }}>{txn.leather_name_snapshot}</td>
                     <td style={{ padding: "12px 14px", color: C.textMid }}>{txn.size_snapshot}</td>

@@ -1,21 +1,21 @@
 import os
 from pathlib import Path
 from decouple import Config, RepositoryEnv
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env_path = BASE_DIR / ".env"
-if not env_path.exists():
-    env_path = BASE_DIR.parent / ".env.tmp_fix"
 
 if env_path.exists():
+    load_dotenv(env_path)
     config = Config(RepositoryEnv(env_path))
 else:
     config = Config()
 
 SECRET_KEY = config('SECRET_KEY', default='dev-secret')
 DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -61,11 +61,15 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -136,3 +140,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # This defines the URL path React will call to view the image (e.g., http://localhost:8000/media/receipts/img.jpg)
 MEDIA_URL = '/media/'
+
+INVENTORY_API_URL = os.environ.get("INVENTORY_API_URL")
+INVENTORY_API_AUTHORIZATION = os.environ.get("INVENTORY_API_AUTHORIZATION")
+INVENTORY_API_USERNAME = os.environ.get("INVENTORY_API_USERNAME")
+INVENTORY_API_PASSWORD = os.environ.get("INVENTORY_API_PASSWORD")
+DELIVERY_API_URL = os.environ.get("DELIVERY_API_URL")

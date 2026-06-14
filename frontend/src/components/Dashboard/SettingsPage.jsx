@@ -381,7 +381,9 @@ export default function SettingsPage({
                 sizeTypes.map((item, index) => (
                   <div key={`${item.id}-${index}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 16, border: `1px solid ${C.creamBorder}`, background: "#fff" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ padding: "8px 12px", borderRadius: 999, background: C.creamBg, color: C.textDark, fontSize: "0.88rem", fontWeight: 700 }}>{item.value}</span>
+                      <span style={{ padding: "8px 12px", borderRadius: 999, background: C.creamBg, color: C.textDark, fontSize: "0.88rem", fontWeight: 700 }}>
+                        {item.value}{item.unit ? ` • ${item.unit}` : ""}
+                      </span>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button

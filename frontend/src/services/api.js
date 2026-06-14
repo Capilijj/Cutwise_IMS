@@ -61,3 +61,9 @@ export const transactionAPI = {
   update: (id, data)  => request("PATCH",  `/transactions/${id}/`,  data),
   remove: (id)        => request("DELETE", `/transactions/${id}/`),
 };
+
+// ── Inventory proxy (calls backend which proxies the external inventory system)
+export const inventoryAPI = {
+  stock: (item) => request("GET", `/inventory/stock/?item=${encodeURIComponent(item)}`),
+  adjust: (payload) => request("POST", `/inventory/adjust/`, payload),
+};

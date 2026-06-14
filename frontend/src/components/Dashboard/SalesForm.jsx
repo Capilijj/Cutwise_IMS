@@ -1,4 +1,5 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
+import { inventoryAPI } from "../../services/api";
 
 const C = {
   maroonDark:  "#1C0606",
@@ -76,9 +77,14 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
   const [itemDescription, setItemDescription] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
-  const [isPickup, setIsPickup]   = useState(false);
+  const [isPickup, setIsPickup]   = useState(true);
   const [errors, setErrors]       = useState({});
+  const [availableQty, setAvailableQty] = useState(null);
+  const [inventoryError, setInventoryError] = useState(null);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
 
+  const selectedSize = sizeTypes.find((t) => String(t.id) === sizeId);
+  const selectedUnit = selectedSize?.unit === "sqft" ? "sqr" : selectedSize?.unit || "sqr";
   const qty   = parseInt(quantity)    || 0;
   const price = parseFloat(unitPrice) || 0;
   const total = qty * price;
@@ -93,13 +99,16 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
     if (!unitPrice || price <= 0) e.unitPrice = "Enter a valid unit price.";
     if (!deliveryAddress && !isPickup) e.deliveryAddress = "Delivery address is required.";
     if (!scheduledAt && !isPickup)      e.scheduledAt = "Schedule date/time is required.";
+    // Inventory checks
+    if (availableQty === 0) e.quantity = "Selected item is out of stock.";
+    if (availableQty !== null && qty > availableQty) e.quantity = `Only ${availableQty} available.`;
     return e;
   };
 
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    onSave({
+    const payload = {
       customer,
       itemType,
       sizeId,
@@ -107,12 +116,16 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
       quantity: qty,
       unitPrice: price,
       item_description: itemDescription,
-      delivery_address: deliveryAddress,
-      scheduled_at: scheduledAt,
-      total,
       is_pickup: isPickup,
+      total,
       status: "Pending",
-    });
+    };
+    if (!isPickup) {
+      payload.delivery_address = deliveryAddress;
+      if (scheduledAt) payload.scheduled_at = scheduledAt;
+    }
+
+    onSave(payload);
     setCustomer(""); setItemType("");
     setSizeId(""); setSizeName("");
     setQuantity(""); setUnitPrice("");
@@ -120,6 +133,24 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
     setScheduledAt(""); setIsPickup(false);
     setErrors({});
   };
+
+  useEffect(() => {
+    setAvailableQty(null);
+    setInventoryError(null);
+    if (!itemType) return;
+    let mounted = true;
+    inventoryAPI.stock(itemType, selectedUnit)
+      .then((res) => {
+        if (!mounted) return;
+        setAvailableQty(res?.available ?? null);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setAvailableQty(null);
+        setInventoryError(err.message || String(err));
+      });
+    return () => { mounted = false; };
+  }, [itemType, selectedUnit]);
 
   const fieldStyle = (errKey) => ({
     width: "100%", padding: "11px 14px", borderRadius: 9,
@@ -167,6 +198,7 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
           />
           {errors.customer && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>{errors.customer}</span>}
         </div>
+
 
         {/* Leather type cards */}
         <div style={{ marginBottom: 16 }}>
@@ -302,7 +334,7 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
         {/* Qty stepper + Unit Price */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
           <div>
-            <label style={labelStyle}>Quantity (KG) *</label>
+            <label style={labelStyle}>Quantity *</label>
             <div style={{
               display: "flex", alignItems: "center",
               border: errors.quantity ? `1.5px solid ${C.error}` : `1px solid ${C.creamBorder}`,
@@ -312,6 +344,7 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
             }}>
               <button
                 type="button"
+                disabled={availableQty === 0}
                 onClick={() => {
                   const v = Math.max(0, (parseInt(quantity) || 0) - 1);
                   setQuantity(String(v));
@@ -319,11 +352,12 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
                 }}
                 style={{
                   width: 44, height: "100%", border: "none",
-                  background: "transparent", cursor: "pointer",
+                  background: "transparent", cursor: availableQty === 0 ? "not-allowed" : "pointer",
                   fontSize: "1.3rem", color: C.textMid, fontFamily: fontSans,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   borderRight: `1px solid ${C.creamBorder}`,
                   flexShrink: 0,
+                  opacity: availableQty === 0 ? 0.4 : 1,
                 }}
               >−</button>
               <input
@@ -331,6 +365,8 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
                 min="0"
                 step="1"
                 value={quantity}
+                placeholder="Qty"
+                disabled={availableQty === 0}
                 onChange={(e) => {
                   const v = e.target.value.replace(/\D/g, "");
                   setQuantity(v);
@@ -342,26 +378,36 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
                   fontFamily: fontSans, color: C.textDark,
                   background: "transparent", fontWeight: "600",
                   MozAppearance: "textfield",
+                  opacity: availableQty === 0 ? 0.5 : 1,
+                  cursor: availableQty === 0 ? "not-allowed" : "text",
                 }}
               />
               <button
                 type="button"
+                disabled={availableQty === 0}
                 onClick={() => {
                   const v = (parseInt(quantity) || 0) + 1;
+                  if (availableQty !== null && v > availableQty) return;
                   setQuantity(String(v));
                   setErrors((p) => ({ ...p, quantity: "" }));
                 }}
                 style={{
                   width: 44, height: "100%", border: "none",
-                  background: "transparent", cursor: "pointer",
+                  background: "transparent", cursor: availableQty === 0 ? "not-allowed" : "pointer",
                   fontSize: "1.3rem", color: C.textMid, fontFamily: fontSans,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   borderLeft: `1px solid ${C.creamBorder}`,
                   flexShrink: 0,
+                  opacity: availableQty === 0 ? 0.4 : 1,
                 }}
               >+</button>
             </div>
             {errors.quantity && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>{errors.quantity}</span>}
+            {availableQty === 0 && !errors.quantity && (
+              <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>
+                {selectedItem.value} is out of stock — this item cannot be recorded right now.
+              </span>
+            )}
           </div>
           <div>
             <label style={labelStyle}>Unit Price / KG *</label>
@@ -374,43 +420,6 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
             />
             {errors.unitPrice && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>{errors.unitPrice}</span>}
           </div>
-        </div>
-
-        {/* Item description */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Item Description</label>
-          <input
-            type="text"
-            value={itemDescription}
-            onChange={(e) => { setItemDescription(e.target.value); setErrors((p) => ({ ...p, itemDescription: "" })); }}
-            placeholder="e.g. Brown cowhide, 5 sqft"
-            style={fieldStyle("itemDescription")}
-          />
-        </div>
-
-        {/* Delivery address */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Delivery Address{!isPickup ? " *" : ""}</label>
-          <input
-            type="text"
-            value={deliveryAddress}
-            onChange={(e) => { setDeliveryAddress(e.target.value); setErrors((p) => ({ ...p, deliveryAddress: "" })); }}
-            placeholder="Street, Barangay, City"
-            style={fieldStyle("deliveryAddress")}
-          />
-          {errors.deliveryAddress && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 6, display: "block" }}>{errors.deliveryAddress}</span>}
-        </div>
-
-        {/* Scheduled date/time */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Scheduled Date & Time{!isPickup ? " *" : ""}</label>
-          <input
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => { setScheduledAt(e.target.value); setErrors((p) => ({ ...p, scheduledAt: "" })); }}
-            style={fieldStyle("scheduledAt")}
-          />
-          {errors.scheduledAt && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 6, display: "block" }}>{errors.scheduledAt}</span>}
         </div>
 
         {/* Fulfillment options */}
@@ -456,7 +465,18 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
                 <button
                   key={option.key}
                   type="button"
-                  onClick={() => setIsPickup(option.key === "pickup")}
+                  onClick={() => {
+                    const isPickupOption = option.key === "pickup";
+                    setIsPickup(isPickupOption);
+                    if (isPickupOption) {
+                      setDeliveryAddress("");
+                      setScheduledAt("");
+                      setErrors((p) => ({ ...p, deliveryAddress: "", scheduledAt: "" }));
+                      setShowDeliveryModal(false);
+                    } else {
+                      setShowDeliveryModal(true);
+                    }
+                  }}
                   style={{
                     display: "flex", alignItems: "flex-start", gap: 10,
                     textAlign: "left", borderRadius: 12,
@@ -487,7 +507,104 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
           </div>
         </div>
 
-      </div>
+        {!isPickup && (
+          <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setShowDeliveryModal(true)}
+              style={{
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: `1px solid ${C.creamBorder}`,
+                background: "#fff",
+                color: C.textDark,
+                cursor: "pointer",
+                fontFamily: fontSans,
+                fontWeight: 700,
+                textAlign: "left",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+              }}
+            >
+              Enter delivery details
+            </button>
+            {showDeliveryModal && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.38)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                <div style={{ width: "100%", maxWidth: 520, background: "#fff", borderRadius: 18, padding: 24, boxShadow: "0 28px 80px rgba(0,0,0,0.25)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                    <div>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: C.maroonMid, fontFamily: fontSans }}>Delivery Details</div>
+                      <div style={{ fontSize: "0.78rem", color: C.textLight, fontFamily: fontSans }}>Set the address and schedule for delivery.</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeliveryModal(false)}
+                      style={{ border: "none", background: "transparent", color: C.textMid, cursor: "pointer", fontSize: "1rem" }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div style={{ display: "grid", gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Item Description</label>
+                      <textarea
+                        value={itemDescription}
+                        onChange={(e) => setItemDescription(e.target.value)}
+                        rows={3}
+                        placeholder="Enter item description"
+                        style={{ ...fieldStyle("item_description"), resize: "vertical" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Delivery Address *</label>
+                      <textarea
+                        value={deliveryAddress}
+                        onChange={(e) => {
+                          setDeliveryAddress(e.target.value);
+                          setErrors((p) => ({ ...p, deliveryAddress: "" }));
+                        }}
+                        rows={3}
+                        placeholder="Enter delivery address"
+                        style={{ ...fieldStyle("deliveryAddress"), resize: "vertical" }}
+                      />
+                      {errors.deliveryAddress && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>{errors.deliveryAddress}</span>}
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Schedule *</label>
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        onChange={(e) => {
+                          setScheduledAt(e.target.value);
+                          setErrors((p) => ({ ...p, scheduledAt: "" }));
+                        }}
+                        style={fieldStyle("scheduledAt")}
+                      />
+                      {errors.scheduledAt && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>{errors.scheduledAt}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeliveryModal(false)}
+                      style={{ padding: "11px 16px", borderRadius: 10, border: `1px solid ${C.creamBorder}`, background: "#fff", color: C.textDark, fontFamily: fontSans, cursor: "pointer" }}
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeliveryModal(false)}
+                      style={{ padding: "11px 16px", borderRadius: 10, border: "none", background: C.maroonBtn, color: "#fff", fontFamily: fontSans, cursor: "pointer" }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+</div>
 
       {/* ════════════════ RIGHT — order summary ════════════════ */}
       <div
@@ -528,6 +645,24 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
             background: C.gold, color: C.maroonDark,
             fontFamily: fontSans, fontWeight: "700",
           }}>{selectedItem.tag}</div>
+          <div style={{ marginTop: 8, fontSize: "0.72rem", color: "rgba(255,255,255,0.8)", fontFamily: fontSans }}>
+            {availableQty === null ? (
+              inventoryError ? <span style={{ color: "#f6c2c2" }}>Inventory unavailable</span> : <span>Checking stock…</span>
+            ) : availableQty === 0 ? (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "3px 10px", borderRadius: 20,
+                background: "rgba(176,0,32,0.22)", color: "#FFB3B3",
+                fontWeight: "700", fontSize: "0.66rem",
+                textTransform: "uppercase", letterSpacing: 1,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF6B6B", flexShrink: 0 }} />
+                Out of Stock
+              </span>
+            ) : (
+              <span>Available stock: <strong>{availableQty}</strong></span>
+            )}
+          </div>
         </div>
 
         {/* Customer preview */}
@@ -601,7 +736,7 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
             Breakdown
           </div>
           {[
-            { label: "Quantity", val: qty > 0 ? `${qty.toLocaleString("en-PH")} kg` : "—" },
+            { label: "Quantity", val: qty > 0 ? `${qty.toLocaleString("en-PH")}` : "—" },
             { label: "Unit Price", val: price > 0 ? `₱ ${price.toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : "—" },
           ].map(({ label, val }) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -642,23 +777,35 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
         </div>
 
         {/* CTA */}
-        <button
-          onClick={handleSubmit}
-          style={{
-            width: "100%", padding: "13px 16px",
-            borderRadius: 12,
-            background: `linear-gradient(135deg, ${C.maroonBtn}, ${C.maroonLight})`,
-            color: "#fff", border: "none", cursor: "pointer",
-            fontWeight: "700", fontSize: "0.9rem",
-            fontFamily: fontSans, letterSpacing: 1,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-            transition: "opacity 0.15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-        >
-          Record Sale
-        </button>
+        {(() => {
+          const isOutOfStock = availableQty === 0;
+          const exceedsStock = availableQty !== null && qty > availableQty;
+          const disabled = isOutOfStock || exceedsStock;
+          return (
+            <button
+              onClick={handleSubmit}
+              disabled={disabled}
+              style={{
+                width: "100%", padding: "13px 16px",
+                borderRadius: 12,
+                background: disabled
+                  ? "rgba(255,255,255,0.12)"
+                  : `linear-gradient(135deg, ${C.maroonBtn}, ${C.maroonLight})`,
+                color: disabled ? "rgba(255,255,255,0.4)" : "#fff",
+                border: "none",
+                cursor: disabled ? "not-allowed" : "pointer",
+                fontWeight: "700", fontSize: "0.9rem",
+                fontFamily: fontSans, letterSpacing: 1,
+                boxShadow: disabled ? "none" : "0 8px 24px rgba(0,0,0,0.3)",
+                transition: "opacity 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.opacity = "0.88"; }}
+              onMouseLeave={(e) => { if (!disabled) e.currentTarget.style.opacity = "1"; }}
+            >
+              {isOutOfStock ? "Out of Stock" : "Record Sale"}
+            </button>
+          );
+        })()}
 
         <div style={{
           textAlign: "center", marginTop: 10,

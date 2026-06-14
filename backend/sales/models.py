@@ -24,7 +24,7 @@ class LeatherType(models.Model):
 class SizeType(models.Model):
     name       = models.CharField(max_length=100)
     value      = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    unit       = models.CharField(max_length=10, default="sqft")
+    unit       = models.CharField(max_length=10, default="sqr")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

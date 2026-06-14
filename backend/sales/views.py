@@ -1,5 +1,8 @@
 import json
 import urllib.request
+import urllib.error
+import os
+from django.conf import settings
 
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -14,7 +17,12 @@ from authentication.permissions import CanCreateTransaction, CanDeleteTransactio
 
 
 def push_to_delivery_system(transaction):
-    url = "http://100.70.67.36:8000/api/deliveries"
+    # prefer DELIVERY_API_URL name; fall back to DELIVERY_SYSTEM_URL for compatibility
+    url = getattr(settings, "DELIVERY_API_URL", None) or os.environ.get("DELIVERY_API_URL")
+    if not url:
+        url = getattr(settings, "DELIVERY_SYSTEM_URL", None) or os.environ.get("DELIVERY_SYSTEM_URL")
+    if not url:
+        url = "http://100.70.67.36:8000/api/deliveries"
 
     delivery_record = getattr(transaction, "delivery_record", None)
     if not delivery_record:
@@ -39,14 +47,28 @@ def push_to_delivery_system(transaction):
         with urllib.request.urlopen(req, timeout=3.0) as response:
             if response.status in {200, 201}:
                 print("Successfully pushed to Mary Ann's Delivery Subsystem!")
+    except urllib.error.HTTPError as e:
+        # Read and print the actual validation/errors returned by the Delivery subsystem
+        try:
+            error_body = e.read().decode('utf-8')
+        except Exception:
+            error_body = str(e)
+        print(f"Failed to push to Delivery subsystem (HTTP {getattr(e, 'code', 'N/A')}): {error_body}")
     except Exception as e:
         print(f"Failed to push to Delivery subsystem: {e}")
+
+
+# NOTE: Stock deduction is fully handled inside serializers.py → adjust_inventory().
+# There is NO deduct_inventory_stock function here intentionally —
+# having it here AND in serializers.py would cause double-deduction on every transaction.
+
 
 from .models import DeliveryType, LeatherType, SizeType, Transaction, DeliveryRecord
 from .serializers import (
     LeatherTypeSerializer, SizeTypeSerializer, DeliveryTypeSerializer,
     TransactionSerializer, DeliveryRecordSerializer, DeliveryPushSerializer,
     UserSerializer,
+    get_inventory_qty, adjust_inventory,
 )
 
 
@@ -96,12 +118,12 @@ class DeliveryTypeViewSet(viewsets.ModelViewSet):
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
     """
     Read-only — users are managed outside this subsystem for now.
     GET  /api/users/
     GET  /api/users/{id}/
     """
+    permission_classes = [IsAuthenticated]
     queryset         = User.objects.all()
     serializer_class = UserSerializer
 
@@ -126,6 +148,39 @@ class DeliveryPushAPIView(APIView):
         delivery_record = serializer.save()
         status_code = status.HTTP_201_CREATED if delivery_record._state.adding else status.HTTP_200_OK
         return Response({"detail": "Delivery pushed successfully."}, status=status_code)
+
+
+class InventoryStockAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        item = request.query_params.get("item")
+        unit = request.query_params.get("unit")
+        if not item:
+            return Response({"detail": "Missing 'item' parameter."}, status=status.HTTP_400_BAD_REQUEST)
+        qty = get_inventory_qty(item, unit=unit)
+        if qty is None:
+            return Response({"detail": "Could not contact inventory system."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({"available": qty}, status=status.HTTP_200_OK)
+
+
+class InventoryAdjustAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        item = request.data.get("item")
+        delta = request.data.get("delta")
+        unit = request.data.get("unit")
+        if item is None or delta is None:
+            return Response({"detail": "Require 'item' and 'delta' in body."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            delta = int(delta)
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid 'delta' value."}, status=status.HTTP_400_BAD_REQUEST)
+        ok = adjust_inventory(item, delta, unit=unit)
+        if not ok:
+            return Response({"detail": "Failed to adjust inventory."}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({"detail": "Inventory adjusted."}, status=status.HTTP_200_OK)
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -159,9 +214,21 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
+        # serializer.save() handles everything:
+        #   1. Creates the Transaction
+        #   2. Creates the DeliveryRecord
+        #   3. Pushes to delivery subsystem
+        #   4. Deducts stock from inventory subsystem
+        # Do NOT add any inventory deduction here — it would double-deduct.
         transaction = serializer.save()
-        if not transaction.is_pickup:
-            push_to_delivery_system(transaction)
+
+        # Push to Mary Ann's Delivery Subsystem (if not pick-up)
+        # This is a secondary push from views as a safety net.
+        # serializers.py already does this via send_delivery_to_external_system(),
+        # so this call is intentionally guarded to avoid double-push.
+        # Uncomment ONLY if serializer is not handling delivery push:
+        # if not getattr(transaction, 'is_pickup', False):
+        #     push_to_delivery_system(transaction)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
@@ -173,7 +240,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        # Soft delete — sets is_deleted=True and records the timestamp
+        # Soft delete — sets is_deleted=1 and records the timestamp
         instance.is_deleted = 1
         instance.deleted_at = timezone.now()
         instance.save()
