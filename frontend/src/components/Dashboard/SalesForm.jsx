@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { inventoryAPI } from "../../services/api";
+import { validateCustomerName } from "../../utils/validation";
 
 const C = {
   maroonDark:  "#1C0606",
@@ -92,7 +93,8 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
 
   const validate = () => {
     const e = {};
-    if (!customer.trim())  e.customer  = "Customer name is required.";
+    const customerError = validateCustomerName(customer);
+    if (customerError) e.customer = customerError;
     if (!itemType.trim())  e.itemType  = "Leather item type is required.";
     if (!sizeId)           e.size      = "Size type is required.";
     if (!quantity || qty <= 0 || !Number.isInteger(qty)) e.quantity = "Enter a valid whole number quantity.";
@@ -192,13 +194,21 @@ export default function SalesForm({ onSave, itemTypes, sizeTypes }) {
           <input
             type="text"
             value={customer}
-            onChange={(e) => { setCustomer(e.target.value); setErrors((p) => ({ ...p, customer: "" })); }}
+            onChange={(e) => {
+              const nextValue = e.target.value;
+              setCustomer(nextValue);
+              const customerError = validateCustomerName(nextValue);
+              setErrors((p) => ({ ...p, customer: customerError }));
+            }}
             placeholder="Client / Company Name"
             style={fieldStyle("customer")}
           />
-          {errors.customer && <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>{errors.customer}</span>}
+          {errors.customer && (
+            <span style={{ color: C.error, fontSize: "0.72rem", fontFamily: fontSans, marginTop: 4, display: "block" }}>
+              {errors.customer}
+            </span>
+          )}
         </div>
-
 
         {/* Leather type cards */}
         <div style={{ marginBottom: 16 }}>

@@ -162,6 +162,7 @@ export default function Sidebar({ active, onNav }) {
       <aside style={{
         width: 260,
         minHeight: "100vh",
+        maxHeight: "100vh",
         backgroundColor: C.sidebarBg,
         borderRight: `1px solid ${C.sidebarBorder}`,
         display: "flex",
@@ -177,6 +178,8 @@ export default function Sidebar({ active, onNav }) {
           : "translateX(0)",
         transition: "transform 0.26s cubic-bezier(0.4,0,0.2,1)",
         overflowY: "auto",
+        overflowX: "hidden",
+        WebkitOverflowScrolling: "touch",
         fontFamily: fontSans,
       }}>
 
@@ -271,52 +274,56 @@ export default function Sidebar({ active, onNav }) {
           padding: "14px 20px 22px",
           borderTop: `1px solid ${C.sidebarBorder}`,
           marginTop: 6,
-          display: "grid", gap: 10,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: "50%",
-            background: C.maroonBtn,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: "0.72rem", fontWeight: "500", flexShrink: 0,
-            letterSpacing: 0.5,
-          }}>
-            {initials}
-          </div>
-            <div style={{ overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
               <div style={{
-                fontSize: "0.82rem", fontWeight: "500",
-                color: C.textWhite, whiteSpace: "nowrap",
-                overflow: "hidden", textOverflow: "ellipsis",
-              }}>{currentUser.full_name || currentUser.username || "User"}</div>
-              <div style={{ fontSize: "0.68rem", color: C.textMuted }}>{roleLabel}</div>
+                width: 36, height: 36, borderRadius: "50%",
+                background: C.maroonBtn,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontSize: "0.72rem", fontWeight: "500", flexShrink: 0,
+                letterSpacing: 0.5,
+              }}>
+                {initials}
+              </div>
+              <div style={{ overflow: "hidden" }}>
+                <div style={{
+                  fontSize: "0.82rem", fontWeight: "500",
+                  color: C.textWhite, whiteSpace: "nowrap",
+                  overflow: "hidden", textOverflow: "ellipsis",
+                }}>{currentUser.full_name || currentUser.username || "User"}</div>
+                <div style={{ fontSize: "0.68rem", color: C.textMuted }}>{roleLabel}</div>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                window.location.reload();
+              }}
+              aria-label="Log out"
+              style={{
+                border: `1px solid ${C.sidebarBorder}`,
+                background: "transparent",
+                color: C.textWhite,
+                borderRadius: 10,
+                width: 36,
+                height: 36,
+                minWidth: 36,
+                minHeight: 36,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={async () => {
-              await signOut();
-              window.location.reload();
-            }}
-            aria-label="Log out"
-            style={{
-              border: `1px solid ${C.sidebarBorder}`,
-              background: "transparent",
-              color: C.textWhite,
-              borderRadius: 10,
-              padding: "10px 10px",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
         </div>
       </aside>
     </>

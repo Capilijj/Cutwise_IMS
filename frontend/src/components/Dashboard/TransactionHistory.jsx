@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { validateCustomerName } from "../../utils/validation";
 
 const C = {
   maroonDark:  "#1C0606",
@@ -86,7 +87,8 @@ function EditDrawer({ txn, leatherTypes, sizeTypes, onSave, onClose, saving }) {
 
   const validate = () => {
     const e = {};
-    if (!customer.trim()) e.customer = "Required.";
+    const customerError = validateCustomerName(customer);
+    if (customerError) e.customer = customerError;
     if (!leatherId) e.leather = "Required.";
     if (!sizeId) e.size = "Required.";
     if (!qty || parseInt(qty) <= 0) e.qty = "Must be > 0.";
@@ -148,7 +150,18 @@ function EditDrawer({ txn, leatherTypes, sizeTypes, onSave, onClose, saving }) {
         <div style={{ padding: "22px 24px", flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <label style={labelSt}>Customer Name *</label>
-            <input type="text" value={customer} onChange={(e) => { setCustomer(e.target.value); setErrors((p) => ({ ...p, customer: "" })); }} style={fieldStyle("customer")} placeholder="Client / Company Name" />
+            <input
+              type="text"
+              value={customer}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setCustomer(nextValue);
+                const customerError = validateCustomerName(nextValue);
+                setErrors((p) => ({ ...p, customer: customerError }));
+              }}
+              style={fieldStyle("customer")}
+              placeholder="Client / Company Name"
+            />
             {errors.customer && <span style={{ color: C.error, fontSize: "0.68rem", fontFamily: fontSans }}>{errors.customer}</span>}
           </div>
           <div>

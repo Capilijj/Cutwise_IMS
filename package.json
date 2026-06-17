@@ -1,7 +1,0 @@
-{
-  "name": "cutwise-ims",
-  "private": true,
-  "scripts": {
-    "start": "npm --prefix frontend run start"
-  }
-}

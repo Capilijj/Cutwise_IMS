@@ -1,0 +1,19 @@
+import { test, expect } from '@playwright/test';
+
+test('test', async ({ page }) => {
+  await page.goto('http://localhost:5173/');
+  await page.getByRole('button', { name: 'Sales Clerk' }).click();
+  await page.getByRole('textbox', { name: 'Email Address' }).click();
+  await page.getByRole('textbox', { name: 'Email Address' }).fill('Clerk@otto.com');
+  await page.getByRole('textbox', { name: 'Email Address' }).press('Tab');
+  await page.getByRole('textbox', { name: 'Password' }).fill('password123');
+  await page.getByRole('checkbox', { name: 'Remember me' }).check();
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.getByRole('heading', { name: 'Sales Entry' }).click();
+  await expect(page.getByRole('heading', { name: 'Sales Entry' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'New Transaction' })).toBeVisible();
+  await page.getByRole('button', { name: 'New Transaction' }).click();
+  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByText('Sales EntryOverview of your sales transactions.June 15, 2026🧾Total').click();
+  await page.getByText('Sales EntryRecord new transactionSettingsManage leather and size types').click();
+});

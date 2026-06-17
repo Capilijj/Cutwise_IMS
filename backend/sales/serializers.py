@@ -379,6 +379,28 @@ class TransactionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Price must be greater than 0.")
         return value
 
+    def validate_customer_name(self, value):
+        import re
+        
+        # Check if empty or just whitespace
+        if not value or not value.strip():
+            raise serializers.ValidationError("Customer name cannot be empty.")
+        
+        # Check maximum length
+        if len(value) > 150:
+            raise serializers.ValidationError("Customer name must not exceed 150 characters.")
+        
+        # Check for numbers (bawal)
+        if re.search(r'\d', value):
+            raise serializers.ValidationError("Customer name cannot contain numbers.")
+        
+        # Allow only letters, spaces, hyphens, apostrophes, and periods
+        # Pattern: letters, spaces, hyphens, apostrophes, periods only
+        if not re.match(r"^[a-zA-Z\s\-'.]+$", value):
+            raise serializers.ValidationError("Customer name can only contain letters, spaces, hyphens, apostrophes, and periods.")
+        
+        return value.strip()
+
     def get_is_pickup(self, obj):
         snapshot = (obj.delivery_type_snapshot or "").strip().lower()
         return snapshot in {"pick up", "pickup", "pick-up"}
@@ -639,25 +661,91 @@ class TransactionSerializer(serializers.ModelSerializer):
         item_description = validated_data.pop("item_description", None)
         delivery_address = validated_data.pop("delivery_address", None)
 
-        transaction = super().update(instance, validated_data)
+        # ── Snapshot old values BEFORE saving ─────────────────────────────────
+        old_leather_name = instance.leather_name_snapshot
+        old_quantity     = instance.quantity_kg
+        old_size_unit    = getattr(instance.size_type, "unit", None)
+        if old_size_unit == "sqft":
+            old_size_unit = "sqr"
 
+        # ── Get existing delivery record info before update ────────────────────
         existing_item_description = ""
         existing_delivery_address = ""
-        if hasattr(transaction, "delivery_record") and transaction.delivery_record is not None:
-            existing_item_description = transaction.delivery_record.item_description or ""
-            existing_delivery_address = transaction.delivery_record.delivery_address or ""
+        try:
+            dr = instance.delivery_record
+            existing_item_description = dr.item_description or ""
+            existing_delivery_address = dr.delivery_address or ""
+        except Exception:
+            pass
 
-        DeliveryRecord.objects.update_or_create(
+        # ── Save the transaction ───────────────────────────────────────────────
+        transaction = super().update(instance, validated_data)
+
+        new_leather_name = transaction.leather_name_snapshot
+        new_quantity     = transaction.quantity_kg
+        new_size_unit    = getattr(transaction.size_type, "unit", None)
+        if new_size_unit == "sqft":
+            new_size_unit = "sqr"
+
+        # ── Inventory adjustment: difference-based ────────────────────────────
+        # Example: old=5, new=3 → delta=+2 (return 2 back to inventory)
+        #          old=3, new=7 → delta=-4 (deduct 4 more from inventory)
+        #          leather changed → return all old, deduct all new separately
+        leather_changed  = old_leather_name != new_leather_name
+        quantity_changed = old_quantity != new_quantity
+
+        if leather_changed or quantity_changed:
+            try:
+                if leather_changed:
+                    # Different leather: return old full qty, deduct new full qty
+                    if old_leather_name:
+                        ok = adjust_inventory(old_leather_name, +int(old_quantity), unit=old_size_unit)
+                        print(f"[EDIT] Returned {old_quantity} of {old_leather_name!r} to inventory — {ok}")
+                    if new_leather_name:
+                        ok = adjust_inventory(new_leather_name, -int(new_quantity), unit=new_size_unit)
+                        print(f"[EDIT] Deducted {new_quantity} of {new_leather_name!r} from inventory — {ok}")
+                else:
+                    # Same leather, only adjust the DIFFERENCE
+                    # old=5, new=3 → delta=+2 (return 2 back)
+                    # old=3, new=7 → delta=-4 (deduct 4 more)
+                    delta = int(old_quantity) - int(new_quantity)
+                    if delta != 0 and new_leather_name:
+                        ok = adjust_inventory(new_leather_name, delta, unit=new_size_unit)
+                        direction = f"returned {delta}" if delta > 0 else f"deducted {abs(delta)} more"
+                        print(f"[EDIT] {direction} of {new_leather_name!r} inventory — {ok}")
+            except Exception:
+                logger.exception("Error during inventory adjustment for transaction %s", transaction.id)
+
+        # ── Update local DeliveryRecord ────────────────────────────────────────
+        final_item_description = (
+            item_description
+            if item_description is not None
+            else (existing_item_description or f"{transaction.leather_name_snapshot} / {transaction.size_snapshot}")
+        )
+        final_delivery_address = (
+            delivery_address
+            if delivery_address is not None
+            else existing_delivery_address
+        )
+
+        delivery_record, _ = DeliveryRecord.objects.update_or_create(
             transaction=transaction,
             defaults={
-                "customer_name": transaction.customer_name,
-                "item_description": item_description if item_description is not None else (existing_item_description or f"{transaction.leather_name_snapshot} / {transaction.size_snapshot}"),
-                "delivery_address": delivery_address if delivery_address is not None else existing_delivery_address,
+                "customer_name":          transaction.customer_name,
+                "item_description":       final_item_description,
+                "quantity":               transaction.quantity_kg,
+                "delivery_address":       final_delivery_address,
                 "delivery_type_snapshot": transaction.delivery_type_snapshot,
-                "scheduled_at": transaction.scheduled_at,
-                "is_pickup": transaction.is_pickup,
+                "scheduled_at":           transaction.scheduled_at,
+                "is_pickup":              transaction.is_pickup,
                 "status": "Ready for Pickup" if transaction.is_pickup else "Pending",
             },
         )
+
+        # ── Push updated delivery to Subsystem 3 ──────────────────────────────
+        try:
+            self.send_delivery_to_external_system(delivery_record)
+        except Exception:
+            logger.exception("Error pushing updated delivery to external system for transaction %s", transaction.id)
 
         return transaction

@@ -1,100 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #FAF8F5;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #8B2525;
-  --accent-bg: rgba(139, 37, 37, 0.1);
-  --accent-border: rgba(139, 37, 37, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: 'Trebuchet MS', 'Segoe UI', sans-serif;
-  --heading: 'Georgia', 'Times New Roman', serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 16px/150% var(--sans);
-  letter-spacing: 0.15px;
+  --maroon-deep: #1C0606;
+  --maroon-mid: #6B1C1C;
+  --maroon-btn: #8B2525;
+  --cream: #FAF8F5;
+  --white: #FFFFFF;
+  --border: #EDE9E3;
+  --border-light: #F3EFE9;
+  --text-primary: #1C1412;
+  --text-second: #6B6560;
+  --text-muted: #AAA49E;
+  --row-alt: #FDFCFB;
+  --error: #8B1A1A;
+  --error-bg: #FCE8E8;
+  --success: #1A6B2A;
+  --success-bg: #E6F4EA;
+  --warn: #7A5200;
+  --warn-bg: #FEF3D7;
+  --action-bg: #F4F1EE;
+  --action-active-bg: #F7EBEA;
+  --action-icon-bg: #F4F1EE;
+  --action-active-icon-bg: #FCD8D4;
+  --font-primary: 'DM Sans', sans-serif;
+  --font-secondary: 'Hanken Grotesk', sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
   color-scheme: light;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
+  color: var(--text-primary);
+  background: var(--cream);
+  font-family: var(--font-primary);
+  font-size: 16px;
+  line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
+html, body {
   margin: 0;
-  padding: 0;
+  min-height: 100%;
+  background: var(--cream);
+}
+
+body {
   overflow-x: hidden;
 }
 
-/* Full viewport — no centering constraint */
 #root {
   width: 100%;
   max-width: 100%;
-  margin: 0;
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  border: none;
-  text-align: left;
+  min-height: 100vh;
 }
 
-h1, h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+button, input, select, textarea {
+  font-family: var(--font-primary);
 }
 
 h1 {
-  font-size: clamp(1.4rem, 3vw, 1.8rem);
-  letter-spacing: -0.5px;
-  margin: 0 0 6px;
+  font-family: var(--font-secondary);
+  font-weight: 700;
+  color: var(--maroon-deep);
+  font-size: clamp(2rem, 4vw, 3rem);
 }
 
-h2 {
-  font-size: 1.1rem;
-  line-height: 120%;
-  letter-spacing: -0.1px;
-  margin: 0 0 6px;
+h2, h3 {
+  font-family: var(--font-primary);
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-p {
-  margin: 0;
+p, label, span, input, select, textarea, button {
+  color: var(--text-primary);
 }
 
-code {
-  font-family: var(--mono);
-  font-size: 14px;
-  line-height: 135%;
-  padding: 3px 7px;
-  background: var(--code-bg);
-  border-radius: 4px;
-  color: var(--text-h);
-  display: inline-flex;
+input, select, textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #FAFAFA;
+  padding: 9px 12px;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--maroon-btn);
+  outline: 2px solid rgba(139, 37, 37, 0.15);
+}
+
+button {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+button:hover {
+  opacity: 0.92;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #EDE8E1;
+  background: var(--border);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #d0c8bc;
 }
