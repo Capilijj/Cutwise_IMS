@@ -23,19 +23,65 @@ const USER_KEY = "otto_user";
 
 const loadUser = () => {
   try {
+    // Proactive cleanup of large cached base64 avatars to free up localStorage space
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('otto_avatar_')) {
+        try {
+          const val = localStorage.getItem(key);
+          if (val && val.length > 50000) {
+            localStorage.removeItem(key);
+          }
+        } catch (e) {}
+      }
+    }
     const stored = localStorage.getItem(USER_KEY);
-    return stored ? JSON.parse(stored) : null;
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && parsed.avatar_url && parsed.avatar_url.length > 50000) {
+        parsed.avatar_url = null;
+        try {
+          localStorage.setItem(USER_KEY, JSON.stringify(parsed));
+        } catch (e) {}
+      }
+      return parsed;
+    }
+    return null;
   } catch (error) {
+    console.error("Failed to load user from localStorage:", error);
+    try {
+      localStorage.removeItem(USER_KEY);
+    } catch (e) {}
     return null;
   }
 };
 
 const saveUser = (user) => {
-  if (!user) {
-    localStorage.removeItem(USER_KEY);
-    return;
+  try {
+    if (!user) {
+      localStorage.removeItem(USER_KEY);
+      return;
+    }
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  } catch (error) {
+    console.error("Failed to save user to localStorage:", error);
+    try {
+      // Clear cached avatars to free up space
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('otto_avatar_')) {
+          localStorage.removeItem(key);
+        }
+      }
+      // Retry once without avatar_url if it was too large
+      if (user && user.avatar_url) {
+        const fallbackUser = { ...user, avatar_url: null };
+        localStorage.setItem(USER_KEY, JSON.stringify(fallbackUser));
+      }
+    } catch (innerError) {
+      console.error("Critical: local storage recovery failed:", innerError);
+    }
   }
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
 export default function App() {
